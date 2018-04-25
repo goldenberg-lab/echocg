@@ -38,30 +38,39 @@ restorer = tf.train.Saver()
 
 features = []
 labels  = []
-
+ids = []
+unique_ids = set()
 with tf.Session() as sess:
 
 	restorer.restore(sess, IMG_NET_WEIGHT_PATH)
 	sess.run(iterator.initializer, feed_dict={input_files:RECORD_PATH})
-	for i in range(30):
+	for i in range(40):
 #	print(np.argwhere(np.isnan(frames[0])), frames[0].min(), frames[0].max())
 		extracted_features, label, ptid = sess.run((fc7, next_outcome, next_ptid))
 		print("label", label, "ptid", ptid, extracted_features.shape[0])
 		features.append(extracted_features)
 		labels.append(label * np.ones(extracted_features.shape[0]))
+		ids.append(np.repeat(ptid, extracted_features.shape[0]))
+		unique_ids.add(ptid[0])
 
-
-
-
+cmap = plt.get_cmap('viridis')
+id_col = dict(zip(unique_ids, cmap(np.linspace(0,1, len(unique_ids)))))
 all_frames = np.concatenate(features, axis=0)
 all_labels = np.concatenate(labels, axis=0)
-
+all_ids = np.concatenate(ids, axis=0)
 
 embedded_frames = TSNE().fit_transform(all_frames)
 fig = plt.figure()
 ax1 = plt.subplot(111)
+for ptid in id_col.keys():
+	ax1.plot(embedded_frames[all_ids == ptid,0], embedded_frames[all_ids == ptid, 1], 'o', label=ptid, c=id_col[ptid])
+
+plt.legend()
+
+'''
 ax1.plot(embedded_frames[all_labels==0,0], embedded_frames[all_labels==0,1], 'o')
 ax1.plot(embedded_frames[all_labels==1,0], embedded_frames[all_labels==1,1], 'ro')
 ax1.plot(embedded_frames[all_labels==2,0], embedded_frames[all_labels==2,1], 'ko')
+'''
 plt.show()
 
